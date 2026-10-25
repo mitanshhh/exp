@@ -1,0 +1,692 @@
+CODE 1A (ARITHMETIC OPERATION):
+.model small
+.code
+start:
+    mov al, 06h
+    mov bl, 02h
+    add al, bl
+    mov cl, al
+
+    sub al, bl
+    mov ch, al
+
+    mul bl
+    mov dl, al
+
+    div bl
+
+    int 3h
+end start
+
+CODE 1B (LOGICAL OPERATION):
+.model small
+.code
+start:
+    mov al, 06h
+    mov bl, 02h
+    and al, bl
+    mov cl, al
+
+    or al, bl
+    mov ch, al
+
+    not al
+    mov dl, al
+
+    xor al, bl
+
+    int 3h
+end start
+
+CODE 2 (BOOTH MULTIPLICATION):
+
+#include <stdio.h>
+
+void printBinary(int n, int bits)
+{
+    int i;
+    for (i = bits - 1; i >= 0; i--)
+        printf("%d", (n >> i) & 1);
+}
+
+int main()
+{
+    int M, Q, A = 0, Q_1 = 0;
+    int n = 5, count = 5, result;
+
+    printf("Enter multiplicand: ");
+    scanf("%d", &M);
+
+    printf("Enter multiplier: ");
+    scanf("%d", &Q);
+
+    printf("Initial Values: A=");
+    printBinary(A, n);
+    printf("\tQ=");
+    printBinary(Q, n);
+    printf("\tQ_1=%d\n\n", Q_1);
+
+    while (count--)
+    {
+        if ((Q & 1) == 1 && Q_1 == 0)
+            A = A - M;
+        else if ((Q & 1) == 0 && Q_1 == 1)
+            A = A + M;
+
+        printf("Step %d: A=", 5 - count);
+        printBinary(A, n);
+        printf("\tQ=");
+        printBinary(Q, n);
+        printf("\tQ_1=%d\n", Q_1);
+
+        Q_1 = Q & 1;
+        Q = (A % 2 != 0) ? (Q >> 1) | (1 << (n - 1)) : (Q >> 1);
+        A = A >> 1;
+    }
+
+    result = (A << n) | Q;
+
+    printf("Final product: ");
+    printBinary(result, 2 * n);
+    printf("\nAnswer: %d\n", result);
+
+    return 0;
+}
+
+CODE 3A (BLOCK TRANSFER):
+.model small
+.stack 100h
+.code
+start:
+
+mov ax, 500h
+mov ds, ax
+mov es, ax
+
+mov si, 1000h
+mov di, 3000h
+mov cx, 10
+rep movsb
+
+mov si, 2000h
+mov di, 1000h
+mov cx, 10
+rep movsb
+
+
+mov si, 3000h
+mov di, 2000h
+mov cx, 10
+rep movsb
+
+int 3h
+end start
+
+CODE 3B (BLOCK EXCHANGE):
+.model small
+.stack 100h
+.code
+start:
+mov ax, 5000h
+mov ds, ax
+mov es, ax
+cld
+
+mov si, 1000h
+mov di, 2000h
+mov cx, 10
+
+exchange:
+mov al, [si]
+mov bl, [di]
+mov [si], bl
+mov [di], al
+inc si
+inc di
+loop exchange
+
+int 3 
+end start
+
+CODE 4 (FLAG REGISTER):
+
+.model small
+.stack 100h
+.data
+msgCF db 'CF: $'
+msgPF db 13,10,'PF: $'
+msgAF db 13,10,'AF: $'
+msgZF db 13,10,'ZF: $'
+msgSF db 13,10,'SF: $'
+msgTF db 13,10,'TF: $'
+msgIF db 13,10,'IF: $'
+msgDF db 13,10,'DF: $'
+msgOF db 13,10,'OF: $'
+.code
+start:
+    mov ax, @data
+    mov ds, ax
+    pushf
+    pop bx
+
+    lea dx, msgCF
+    mov cl, 0
+    call show
+
+    lea dx, msgPF
+    mov cl, 2
+    call show
+
+    lea dx, msgAF
+    mov cl, 4
+    call show
+
+    lea dx, msgZF
+    mov cl, 6
+    call show
+
+    lea dx, msgSF
+    mov cl, 7
+    call show
+
+    lea dx, msgTF
+    mov cl, 8
+    call show
+
+    lea dx, msgIF
+    mov cl, 9
+    call show
+
+    lea dx, msgDF
+    mov cl, 10
+    call show
+
+    lea dx, msgOF
+    mov cl, 11
+    call show
+
+    mov ax, 4c00h
+    int 21h
+
+show proc
+    mov ah, 09h
+    int 21h
+    mov ax, bx
+    shr ax, cl
+    and al, 1
+    add al, '0'
+    mov dl, al
+    mov ah, 02h
+    int 21h
+    ret
+show endp
+end start
+
+CODE 5 (BCD ADDITION):
+.model small
+.stack 100h
+.data
+msg1 db 'Enter first number (00-99): $'
+msg2 db 13,10,'Enter second number (00-99): $'
+msg3 db 13,10,'Sum = $'
+.code
+start:
+    mov ax, @data
+    mov ds, ax
+
+    lea dx, msg1
+    mov ah, 09h
+    int 21h
+
+    mov ah, 01h
+    int 21h
+    sub al, 30h
+    mov bl, al
+    mov ah, 01h
+    int 21h
+    sub al, 30h
+    mov bh, al
+    mov cl, 4
+    shl bl, cl
+    or bl, al
+
+    lea dx, msg2
+    mov ah, 09h
+    int 21h
+
+    mov ah, 01h
+    int 21h
+    sub al, 30h
+    mov ch, al
+    mov ah, 01h
+    int 21h
+    sub al, 30h
+    mov cl, 4
+    shl ch, cl
+    or ch, al
+
+    mov al, bl
+    add al, ch
+    daa
+    mov bl, al
+
+    lea dx, msg3
+    mov ah, 09h
+    int 21h
+
+    mov al, bl
+    and al, 0F0h
+    mov cl, 4
+    shr al, cl
+    add al, 30h
+    mov dl, al
+    mov ah, 02h
+    int 21h
+
+    mov al, bl
+    and al, 0Fh
+    add al, 30h
+    mov dl, al
+    mov ah, 02h
+    int 21h
+
+    mov ax, 4c00h
+    int 21h
+end start
+
+CODE 6A (HEX TO BCD):
+
+.model small
+.stack 100h
+.data
+msg1 db 'Hex number = 92h',13,10,'BCD = $'
+.code
+start:
+    mov ax, @data
+    mov ds, ax
+
+    lea dx, msg1
+    mov ah, 09h
+    int 21h
+
+    mov ax, 92h
+    mov bx, 10
+    mov cx, 0
+
+convert:
+    mov dx, 0
+    div bx
+    push dx
+    inc cx
+    cmp ax, 0
+    jne convert
+
+print:
+    pop dx
+    add dl, 30h
+    mov ah, 02h
+    int 21h
+    loop print
+
+    mov ax, 4c00h
+    int 21h
+end start
+
+CODE 6B (ASCII TO BCD):
+
+.model small
+.stack 100h
+.data
+msg1 db 'Enter 2 ASCII digits: $'
+msg2 db 13,10,'BCD = $'
+.code
+start:
+    mov ax, @data
+    mov ds, ax
+
+    lea dx, msg1
+    mov ah, 09h
+    int 21h
+
+    mov ah, 01h
+    int 21h
+    sub al, 30h
+    mov bl, al
+
+    mov ah, 01h
+    int 21h
+    sub al, 30h
+
+    mov cl, 4
+    shl bl, cl
+    or bl, al
+
+    lea dx, msg2
+    mov ah, 09h
+    int 21h
+
+    mov dl, bl
+    mov cl, 4
+    shr dl, cl
+    add dl, 30h
+    mov ah, 02h
+    int 21h
+
+    mov dl, bl
+    and dl, 0Fh
+    add dl, 30h
+    mov ah, 02h
+    int 21h
+
+    mov ax, 4c00h
+    int 21h
+end start
+
+CODE 6C (BCD TO ASCII):
+
+.model small
+.stack 100h
+.data
+msg db 'BCD number = 92h',13,10,'ASCII = $'
+.code
+start:
+    mov ax, @data
+    mov ds, ax
+
+    lea dx, msg
+    mov ah, 09h
+    int 21h
+
+    mov bl, 92h
+
+    mov dl, bl
+    mov cl, 4
+    shr dl, cl
+    and dl, 0Fh
+    add dl, 30h
+    mov ah, 02h
+    int 21h
+
+    mov dl, bl
+    and dl, 0Fh
+    add dl, 30h
+    mov ah, 02h
+    int 21h
+
+    mov ax, 4c00h
+    int 21h
+end start
+
+CODE 7A (DISPLAY STRING):
+.model small
+.stack 100h
+.data
+msg db 'Hello Safa here, 8086 Assembly!', 0Dh, 0Ah, '$'
+.code
+start:
+    mov ax, @data
+    mov ds, ax
+
+    lea dx, msg
+    mov ah, 09h
+    int 21h
+
+    mov ax, 4c00h
+    int 21h
+end start
+
+CODE 7B (LENGTH OF STRING):
+.model small
+.stack 100h
+.data
+str db 'Hello Safa Here$'
+msg db 'String Length: $'
+
+.code
+start:
+    mov ax, @data
+    mov ds, ax
+
+    lea dx, msg
+    mov ah, 09h
+    int 21h
+
+    lea si, str
+    mov cx, 0
+
+count:
+    cmp byte ptr [si], '$'
+    je display
+    inc cx
+    inc si
+    jmp count
+
+display:
+    mov ax, cx
+    mov bx, 10
+    mov cx, 0
+
+convert:
+    mov dx, 0
+    div bx
+    push dx
+    inc cx
+    cmp ax, 0
+    jne convert
+
+print:
+    pop dx
+    add dl, '0'
+    mov ah, 02h
+    int 21h
+    loop print
+
+    mov ax, 4C00h
+    int 21h
+end start
+
+CODE 7C (REVERSE STRING):
+.model small
+.stack 100h
+.data
+str db 'REVERSE', '$'
+rev db 20 dup('$')
+msg1 db 'Original: $'
+msg2 db 0Dh, 0Ah, 'Reversed: $'
+
+.code
+start:
+    mov ax, @data
+    mov ds, ax
+    mov es, ax
+
+    lea dx, msg1
+    mov ah, 09h
+    int 21h
+
+    lea dx, str
+    mov ah, 09h
+    int 21h
+
+    lea si, str
+    mov cx, 7
+
+push_chars:
+    lodsb
+    xor ah, ah
+    push ax
+    loop push_chars
+
+    lea di, rev
+    mov cx, 7
+
+pop_chars:
+    pop ax
+    stosb
+    loop pop_chars
+
+    mov al, '$'
+    stosb
+
+    lea dx, msg2
+    mov ah, 09h
+    int 21h
+
+    lea dx, rev
+    mov ah, 09h
+    int 21h
+
+    mov ax, 4C00h
+    int 21h
+end start
+
+CODE 8 (GREATEST NUM):
+.model small
+.stack 100h
+.data
+msg1 db 'Enter number of elements: $'
+msg2 db 13,10,'Enter number: $'
+msg3 db 13,10,'Greatest number is: $'
+n db ?
+max db ?
+
+.code
+start:
+    mov ax, @data
+    mov ds, ax
+
+    lea dx, msg1
+    mov ah, 09h
+    int 21h
+    call read_num
+    mov n, al
+
+    lea dx, msg2
+    mov ah, 09h
+    int 21h
+    call read_num
+    mov max, al
+
+    mov cl, n
+    dec cl
+    jz result
+
+next_num:
+    lea dx, msg2
+    mov ah, 09h
+    int 21h
+    call read_num
+
+    cmp al, max
+    jbe skip
+    mov max, al
+
+skip:
+    loop next_num
+
+result:
+    lea dx, msg3
+    mov ah, 09h
+    int 21h
+
+    mov al, max
+    add al, '0'
+    mov dl, al
+    mov ah, 02h
+    int 21h
+
+    mov ax, 4c00h
+    int 21h
+
+read_num proc
+    mov ah, 01h
+    int 21h
+    sub al, '0'
+    ret
+read_num endp
+
+end start
+
+CODE 9 (FILE OPERATION):
+.model small
+.stack 100h
+.data
+fname db 'TEST.TXT',0
+msg db 'Hello! File created using 8086 MASM.'
+buf db 100 dup('$')
+m1 db 13,10,'File written successfully.$'
+m2 db 13,10,'File contents: $'
+m3 db 13,10,'File error!$'
+handle dw ?
+
+.code
+start:
+    mov ax, @data
+    mov ds, ax
+
+    ; Create file
+    mov ah, 3Ch
+    mov cx, 0
+    lea dx, fname
+    int 21h
+    jc error
+    mov handle, ax
+
+    ; Write to file
+    mov ah, 40h
+    mov bx, handle
+    mov cx, 36
+    lea dx, msg
+    int 21h
+    jc error
+
+    ; Close file
+    mov ah, 3Eh
+    mov bx, handle
+    int 21h
+
+    lea dx, m1
+    mov ah, 09h
+    int 21h
+
+    ; Open file for reading
+    mov ah, 3Dh
+    mov al, 0
+    lea dx, fname
+    int 21h
+    jc error
+    mov handle, ax
+
+    ; Read file
+    mov ah, 3Fh
+    mov bx, handle
+    mov cx, 100
+    lea dx, buf
+    int 21h
+    jc error
+    mov si, ax
+    mov byte ptr buf[si], '$'
+
+    ; Display contents
+    lea dx, m2
+    mov ah, 09h
+    int 21h
+    lea dx, buf
+    mov ah, 09h
+    int 21h
+
+    ; Close file
+    mov ah, 3Eh
+    mov bx, handle
+    int 21h
+    jmp exit
+
+error:
+    lea dx, m3
+    mov ah, 09h
+    int 21h
+
+exit:
+    mov ax, 4C00h
+    int 21h
+end start
